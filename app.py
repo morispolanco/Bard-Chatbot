@@ -8,7 +8,7 @@ with open('config.json') as config_file:
     data = json.load(config_file)
 
 # Obtener la clave de la API de Bard desde la configuración
-bard_api_key = data.get("ABTWhQF55IO_Kq_Uc1Knk24BEfyjWjSVyMZ1yuRIL3IKNhpeyBlsjMhTkWrXllgR_gQxQVekQCaW")
+bard_api_key = "ABTWhQF55IO_Kq_Uc1Knk24BEfyjWjSVyMZ1yuRIL3IKNhpeyBlsjMhTkWrXllgR_gQxQVekQCaW"
 
 # Inicializar la API de Bard
 bard = Bard(token=bard_api_key, timeout=30)
