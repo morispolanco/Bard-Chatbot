@@ -3,66 +3,52 @@ from streamlit_chat import message
 from bardapi import Bard
 import json
 
-# open the config file
+# Cargar la configuración desde un archivo JSON
 with open('config.json') as config_file:
     data = json.load(config_file)
 
-# store the bard api key in a variable
-bard_api_key = data["BARD_API_KEY"]
+# Obtener la clave de la API de Bard desde la configuración
+bard_api_key = data.get("BARD_API_KEY")
 
-# initialize the bard api
-bard = Bard(token=bard_api_key, timeout= 30)
+# Inicializar la API de Bard
+bard = Bard(token=bard_api_key, timeout=30)
 
+# Función para generar la respuesta del chatbot
 def generate_response(prompt):
-    # this function takes in a prompt, and then calls the bard api to get the bard response
-    history = ""
-    for user_response, bard_response in zip(st.session_state['user_responses'], st.session_state['bard_responses']):
-        history += f"User: {user_response}\n"
-        history += f"Bard Response: {bard_response}\n"
+    history = "\n".join(f"User: {u}\nBard Response: {b}" for u, b in zip(st.session_state.user_responses, st.session_state.bard_responses))
+    response = bard.get_answer(f"Conversation History: {history}\n{prompt}")
+    return response.get("content", "Error en la respuesta de Bard")
 
-    response = bard.get_answer(f"Conversation History: {history}\n {prompt}")   
-
-    return response["content"]
-
+# Función para manejar el clic en el botón "New Topic"
 def on_btn_click():
-    # this function clears the session state
-    del st.session_state['user_responses']
-    del st.session_state['bard_responses']
+    st.session_state.user_responses.clear()
+    st.session_state.bard_responses.clear()
 
+# Función para manejar el cambio en el campo de entrada de texto
 def on_input_change():
-    # this function is called when the user inputs something in the text input field
-    # it stores the user input in the session state, and then calls the generate_response function
-    # to get the bard response.
-    # it then appends the user input and bard response to the session state, and then clears the
-    # user input field.
-    
     user_input = st.session_state.user_input
     output = generate_response(user_input)
     st.session_state.user_responses.append(user_input)
     st.session_state.bard_responses.append(output)
-    st.session_state["user_input"] = ""
+    st.session_state.user_input = ""
 
-# create the title for the page
+# Configuración de la interfaz de usuario
 st.title("Bard Chatbot")
-
-# create a button to clear the session state (chat history)
 st.button("New Topic", on_click=on_btn_click)
 
-if 'bard_responses' not in st.session_state:
-    st.session_state['bard_responses'] = []
-
+# Inicialización del estado de la sesión
 if 'user_responses' not in st.session_state:
-    st.session_state['user_responses'] = []
+    st.session_state.user_responses = []
 
-# create the text input field
-with st.container():
-    st.text_input("User Response:", on_change=on_input_change, key="user_input")
+if 'bard_responses' not in st.session_state:
+    st.session_state.bard_responses = []
 
-# show a loading spinner while the bard api is getting the response
-# then show the chat history
-with st.spinner("Loading..."):   
-    if st.session_state['bard_responses']:
+# Entrada de texto para la respuesta del usuario
+user_input = st.text_input("User Response:", on_change=on_input_change, key="user_input")
 
-        for i in range(len(st.session_state['bard_responses'])-1, -1, -1):
-            message(st.session_state["bard_responses"][i], key=str(i))
-            message(st.session_state['user_responses'][i], is_user=True, key=str(i) + '_user')
+# Mostrar un spinner mientras se obtiene la respuesta de Bard
+with st.spinner("Loading..."):
+    # Mostrar el historial del chat en orden inverso
+    for i, (user_resp, bard_resp) in enumerate(reversed(list(zip(st.session_state.user_responses, st.session_state.bard_responses)))):
+        message(f"**User {i + 1}:** {user_resp}", is_user=True)
+        message(f"**Bard Response {i + 1}:** {bard_resp}")
